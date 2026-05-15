@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <h2>🎰 武将资源池管理</h2>
+    <p style="color:#888;margin-bottom:20px;">每个武将拥有独立的技能池、武将池和标记池，数据独立保存</p>
+
+    <div style="display:flex;gap:15px;flex-wrap:wrap;margin-bottom:30px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+            <label style="color:#888;">选择武将:</label>
+            <select onchange="window.location.href='{{ url_for('routes.skill_pool') }}?hero=' + this.value">
+                <option value="">请选择武将</option>
+                {% for hero in heroes %}
+                <option value="{{ hero.name }}" {% if hero.name == hero_name %}selected{% endif %}>{{ hero.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    {% if hero_name %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(400px, 1fr));gap:25px;">
+        <div>
+            <h3 style="color:#41b883;margin-bottom:15px;padding-bottom:10px;border-bottom:2px solid #41b883;">
+                技能池 ({{ skill_pool|length }}个)
+            </h3>
+            
+            <div style="margin-bottom:15px;">
+                <div style="display:flex;gap:15px;flex-wrap:wrap;margin-bottom:10px;">
+                    <form method="post" action="{{ url_for('routes.add_all_skills_to_pool') }}" class="form-inline">
+                        <input type="hidden" name="hero_name" value="{{ hero_name }}">
+                        <select name="skill_type">
+                            <option value="all">所有技能</option>
+                            <option value="普通技">所有普通技</option>
+                            <option value="限定技">所有限定技</option>
+                            <option value="锁定技">所有锁定技</option>
+                            <option value="主公技">所有主公技</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary btn-sm">批量添加</button>
+                    </form>
+                </div>
+                <form method="post" action="{{ url_for('routes.add_skill_to_pool') }}" class="form-inline">
+                    <input type="hidden" name="hero_name" value="{{ hero_name }}">
+                    <select name="skill_name" required>
+                        <option value="">选择技能</option>
+                        {% for skill in all_skills %}
+                        <option value="{{ skill.name }}">{{ skill.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-success btn-sm">+ 添加</button>
+                </form>
+            </div>
+
+            {% if skill_pool %}
+            <div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:8px;max-height:300px;overflow-y:auto;">
+                {% for pool_skill in skill_pool %}
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px;border-bottom:1px solid rgba(255,255,255,0.1);">
+                    <div>
+                        <span style="color:#e8e8e8;font-weight:500;">{{ pool_skill.skill_name }}</span>
+                        {% if pool_skill.skill_type %}
+                        <span class="tag" style="background:#4a90d9;font-size:0.7rem;margin-left:5px;">{{ pool_skill.skill_type }}</span>
+                        {% endif %}
+                        {% if pool_skill.description %}
+                        <div style="color:#aaa;font-size:0.85rem;margin-top:5px;">{{ pool_skill.description }}</div>
+                        {% endif %}
+                    </div>
+                    <form action="{{ url_for('routes.remove_skill_from_pool', id=pool_skill.id) }}" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm" style="padding:2px 6px;">×</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty">技能池为空</p>
+            {% endif %}
+        </div>
+
+        <div>
+            <h3 style="color:#41b883;margin-bottom:15px;padding-bottom:10px;border-bottom:2px solid #41b883;">
+                武将池 ({{ hero_pool|length }}个)
+            </h3>
+            
+            <div style="margin-bottom:15px;">
+                <div style="display:flex;gap:15px;flex-wrap:wrap;margin-bottom:10px;">
+                    <form method="post" action="{{ url_for('routes.add_all_heroes_to_pool') }}" class="form-inline">
+                        <input type="hidden" name="hero_name" value="{{ hero_name }}">
+                        <select name="camp">
+                            <option value="all">所有武将</option>
+                            <option value="魏">魏国武将</option>
+                            <option value="蜀">蜀国武将</option>
+                            <option value="吴">吴国武将</option>
+                            <option value="群">群雄武将</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary btn-sm">批量添加</button>
+                    </form>
+                </div>
+                <form method="post" action="{{ url_for('routes.add_hero_to_pool') }}" class="form-inline">
+                    <input type="hidden" name="hero_name" value="{{ hero_name }}">
+                    <select name="pool_hero_name" required>
+                        <option value="">选择武将</option>
+                        {% for hero_item in all_heroes %}
+                        <option value="{{ hero_item.name }}">{{ hero_item.name }} ({{ hero_item.camp }})</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-success btn-sm">+ 添加</button>
+                </form>
+            </div>
+
+            {% if hero_pool %}
+            <div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:8px;max-height:300px;overflow-y:auto;">
+                {% for pool_hero in hero_pool %}
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid rgba(255,255,255,0.1);">
+                    <div>
+                        <span style="color:#e8e8e8;font-weight:500;">{{ pool_hero.hero_name }}</span>
+                        <span class="tag camp-{{ pool_hero.camp }}" style="margin-left:5px;">{{ pool_hero.camp }}</span>
+                        <span style="color:#41b883;margin-left:5px;">{{ pool_hero.hp }}血</span>
+                    </div>
+                    <form action="{{ url_for('routes.remove_hero_from_pool', id=pool_hero.id) }}" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm" style="padding:2px 6px;">×</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty">武将池为空</p>
+            {% endif %}
+        </div>
+
+        <div>
+            <h3 style="color:#41b883;margin-bottom:15px;padding-bottom:10px;border-bottom:2px solid #41b883;">
+                标记池 ({{ marker_pool|length }}个)
+            </h3>
+            
+            <div style="margin-bottom:15px;">
+                <div style="display:flex;gap:15px;flex-wrap:wrap;margin-bottom:10px;">
+                    <form method="post" action="{{ url_for('routes.add_all_markers_to_pool') }}" class="form-inline">
+                        <input type="hidden" name="hero_name" value="{{ hero_name }}">
+                        <button type="submit" class="btn btn-primary btn-sm">添加全部标记</button>
+                    </form>
+                </div>
+                <form method="post" action="{{ url_for('routes.add_marker_to_pool') }}" class="form-inline">
+                    <input type="hidden" name="hero_name" value="{{ hero_name }}">
+                    <select name="marker_name" required>
+                        <option value="">选择标记</option>
+                        {% for marker in all_markers %}
+                        <option value="{{ marker.name }}">{{ marker.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-success btn-sm">+ 添加</button>
+                </form>
+            </div>
+
+            {% if marker_pool %}
+            <div style="background:rgba(255,255,255,0.05);padding:15px;border-radius:8px;max-height:300px;overflow-y:auto;">
+                {% for pool_marker in marker_pool %}
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid rgba(255,255,255,0.1);">
+                    <div>
+                        <span style="color:#e8e8e8;font-weight:500;">{{ pool_marker.marker_name }}</span>
+                        <span style="color:#888;margin-left:5px;">(默认: {{ pool_marker.count }})</span>
+                    </div>
+                    <form action="{{ url_for('routes.remove_marker_from_pool', id=pool_marker.id) }}" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm" style="padding:2px 6px;">×</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty">标记池为空</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% else %}
+    <div style="text-align:center;padding:50px;">
+        <p style="color:#888;">请从上方选择一个武将，查看和管理其独立的资源池</p>
+    </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

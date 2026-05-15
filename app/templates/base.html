@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>三国杀辅助状态管理</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', 'Helvetica Neue', sans-serif;
+            background: #2a2a2e;
+            min-height: 100vh;
+            color: #e8e8e8;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        header {
+            background: #323236;
+            padding: 15px 25px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        h1 { color: #41b883; font-size: 1.6rem; font-weight: 600; }
+        .nav { display: flex; gap: 8px; flex-wrap: wrap; }
+        .nav a {
+            padding: 8px 16px;
+            background: rgba(255,255,255,0.08);
+            color: #ccc;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+        .nav a:hover { 
+            background: #41b883; 
+            color: #fff;
+        }
+        .card {
+            background: #323236;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #444;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .card h2 {
+            color: #41b883;
+            margin-bottom: 18px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #41b883;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+        .card h3 {
+            color: #e8e8e8;
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+        }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px; }
+        .item {
+            background: #2a2a2e;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            transition: all 0.2s ease;
+        }
+        .item:hover {
+            border-color: #41b883;
+        }
+        .item-name { font-size: 1.1rem; color: #e8e8e8; margin-bottom: 8px; font-weight: 500; }
+        .item-desc { color: #aaa; font-size: 0.85rem; line-height: 1.5; }
+        .item-meta { color: #777; font-size: 0.75rem; margin-top: 8px; }
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            margin-right: 4px;
+            margin-bottom: 4px;
+        }
+        .tag-normal { background: #4a90d9; color: #fff; }
+        .tag-limited { background: #e94560; color: #fff; }
+        .tag-lock { background: #f39c12; color: #fff; }
+        .tag-king { background: #9b59b6; color: #fff; }
+        .btn {
+            padding: 7px 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        .btn-primary { background: #41b883; color: #fff; }
+        .btn-primary:hover { background: #389d70; }
+        .btn-secondary { background: rgba(255,255,255,0.1); color: #ccc; }
+        .btn-secondary:hover { background: rgba(255,255,255,0.15); }
+        .btn-danger { background: #e74c3c; color: #fff; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-success { background: #27ae60; color: #fff; }
+        .btn-sm { padding: 4px 8px; font-size: 0.75rem; }
+        .game-state { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        .game-state-item { display: flex; align-items: center; gap: 8px; }
+        .game-state label { color: #888; font-size: 0.9rem; }
+        .game-state input {
+            padding: 6px 10px;
+            background: #2a2a2e;
+            border: 1px solid #444;
+            border-radius: 5px;
+            color: #e8e8e8;
+            width: 100px;
+            font-size: 0.9rem;
+        }
+        .game-state input:focus {
+            outline: none;
+            border-color: #41b883;
+        }
+        .hp-display { font-size: 1.8rem; color: #41b883; font-weight: 600; }
+        .markers-grid { display: flex; gap: 12px; flex-wrap: wrap; }
+        .marker-item {
+            background: rgba(65,184,131,0.15);
+            padding: 12px 16px;
+            border-radius: 6px;
+            text-align: center;
+            min-width: 90px;
+            border: 1px solid rgba(65,184,131,0.3);
+        }
+        .marker-name { color: #e8e8e8; margin-bottom: 4px; font-size: 0.9rem; }
+        .marker-count { font-size: 1.4rem; color: #41b883; font-weight: 600; }
+        .marker-controls { display: flex; gap: 4px; justify-content: center; margin-top: 6px; }
+        .skill-pool-item {
+            display: inline-block;
+            background: rgba(74,144,217,0.2);
+            padding: 4px 10px;
+            border-radius: 12px;
+            margin: 4px;
+            color: #e8e8e8;
+            font-size: 0.85rem;
+            border: 1px solid rgba(74,144,217,0.3);
+        }
+        .current-skills { display: flex; gap: 8px; flex-wrap: wrap; }
+        .current-skill {
+            background: linear-gradient(135deg, #41b883 0%, #2d8a6a 100%);
+            padding: 8px 16px;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 4px rgba(65,184,131,0.3);
+        }
+        .equipment-active { border: 2px solid #41b883 !important; }
+        .form-inline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .form-group { display: flex; flex-direction: column; gap: 4px; }
+        .form-group label { color: #888; font-size: 0.85rem; }
+        .form-group input, .form-group select, .form-group textarea {
+            padding: 8px;
+            background: #2a2a2e;
+            border: 1px solid #444;
+            border-radius: 5px;
+            color: #e8e8e8;
+            font-size: 0.9rem;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #41b883;
+        }
+        .form-group textarea { min-height: 70px; resize: vertical; }
+        .filter-bar { display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
+        .filter-bar input { 
+            padding: 8px; 
+            background: #2a2a2e; 
+            border: 1px solid #444; 
+            border-radius: 5px; 
+            color: #e8e8e8;
+            font-size: 0.9rem;
+        }
+        .filter-bar input:focus {
+            outline: none;
+            border-color: #41b883;
+        }
+        .checkbox-group { display: flex; align-items: center; gap: 6px; }
+        .checkbox-group input[type="checkbox"] { width: 16px; height: 16px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #444; }
+        th { color: #41b883; font-weight: 600; }
+        td { color: #ccc; }
+        .actions { display: flex; gap: 4px; }
+        .empty { text-align: center; padding: 30px; color: #777; }
+        .camp-魏 { color: #6ab0f3; }
+        .camp-蜀 { color: #41b883; }
+        .camp-吴 { color: #f39c12; }
+        .camp-群 { color: #b794f4; }
+        .tag-标 { background: #7f8c8d; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; }
+        .tag-界 { background: #3498db; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; }
+        .tag-谋 { background: #9b59b6; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; }
+        .tag-才子 { background: #e67e22; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; }
+        .tag-神 { background: #f1c40f; color: #2a2a2e; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; }
+        .tag-sp { background: #e74c3c; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; }
+        .tag-限定 { background: #c0392b; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; }
+        .tag-活动 { background: #1abc9c; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; }
+        .hero-card { cursor: pointer; transition: all 0.2s ease; }
+        .hero-card:hover { 
+            transform: translateY(-3px);
+            border-color: #41b883;
+        }
+        .hero-info { text-align: center; margin-bottom: 8px; }
+        .hero-name { font-size: 1.2rem; color: #e8e8e8; font-weight: 500; }
+        .hero-camp { font-size: 0.85rem; }
+        .hero-hp { color: #41b883; }
+        .skill-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px; }
+        .skill-tag { background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 8px; font-size: 0.75rem; color: #ccc; }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            opacity: 1;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #2a2a2e;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+        
+        .tooltip-text {
+            visibility: hidden;
+            width: 280px;
+            background-color: #3a3a3e;
+            color: #e8e8e8;
+            text-align: left;
+            border-radius: 8px;
+            padding: 12px;
+            position: absolute;
+            z-index: 1000;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -140px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            border: 1px solid #41b883;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        
+        .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -6px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: #41b883 transparent transparent transparent;
+        }
+        
+        .tooltip-container:hover .tooltip-text,
+        .tooltip-container.active .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .current-skill {
+            position: relative;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 8px;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            cursor: help;
+        }
+        
+        @media screen and (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            header {
+                flex-direction: column;
+                padding: 15px;
+            }
+            
+            header h1 {
+                font-size: 1.3rem;
+                margin-bottom: 10px;
+            }
+            
+            .nav {
+                flex-wrap: wrap;
+                gap: 5px;
+                justify-content: center;
+            }
+            
+            .nav a {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+            
+            .card {
+                padding: 15px;
+            }
+            
+            .card h2 {
+                font-size: 1.1rem;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .item {
+                padding: 12px;
+            }
+            
+            .item-name {
+                font-size: 1rem;
+            }
+            
+            .item-desc {
+                font-size: 0.8rem;
+            }
+            
+            .game-state {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .game-state-item {
+                margin-bottom: 10px;
+            }
+            
+            .game-state input {
+                width: 100%;
+            }
+            
+            .markers-grid {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+            
+            .marker-item {
+                min-width: 80px;
+                padding: 10px;
+            }
+            
+            .marker-count {
+                font-size: 1.2rem;
+            }
+            
+            .current-skills {
+                flex-direction: column;
+            }
+            
+            .current-skill {
+                margin-bottom: 8px;
+            }
+            
+            .filter-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .form-inline {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .form-group {
+                margin-bottom: 10px;
+            }
+            
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                width: 100%;
+            }
+            
+            table {
+                display: block;
+                overflow-x: auto;
+            }
+            
+            th, td {
+                padding: 8px 5px;
+                font-size: 0.8rem;
+            }
+            
+            .btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+            
+            .btn-sm {
+                padding: 3px 8px;
+                font-size: 0.7rem;
+            }
+        }
+        
+        @media screen and (max-width: 480px) {
+            header h1 {
+                font-size: 1.1rem;
+            }
+            
+            .nav a {
+                padding: 5px 10px;
+                font-size: 0.75rem;
+            }
+            
+            .card {
+                padding: 10px;
+            }
+            
+            .marker-item {
+                min-width: 70px;
+                padding: 8px 10px;
+            }
+            
+            .marker-name {
+                font-size: 0.8rem;
+            }
+            
+            .marker-count {
+                font-size: 1.1rem;
+            }
+            
+            .hp-display {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* 弹窗样式 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: #323236;
+            border-radius: 12px;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid #444;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            border-bottom: 1px solid #444;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px 12px 0 0;
+        }
+
+        .modal-title {
+            font-size: 1.4rem;
+            color: #41b883;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ccc;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: rgba(231, 76, 60, 0.8);
+            color: #fff;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-section {
+            margin-bottom: 25px;
+        }
+
+        .modal-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .modal-section h3 {
+            color: #41b883;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #41b883;
+            font-size: 1.1rem;
+        }
+
+        .modal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .modal-item {
+            background: #2a2a2e;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+
+        .modal-item-name {
+            font-size: 1rem;
+            color: #e8e8e8;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+
+        .modal-item-desc {
+            color: #aaa;
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
+
+        .modal-hero-info {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+        }
+
+        .modal-hero-avatar {
+            max-width: 120px;
+            max-height: 120px;
+            border-radius: 8px;
+            border: 2px solid #41b883;
+        }
+
+        .modal-hero-stats {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .modal-hero-stats div {
+            margin-bottom: 8px;
+        }
+
+        .modal-hero-stats .label {
+            color: #888;
+            font-size: 0.85rem;
+        }
+
+        .modal-hero-stats .value {
+            color: #e8e8e8;
+            font-size: 1.2rem;
+        }
+
+        .modal-review-section {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .modal-rating {
+            color: #f39c12;
+            font-size: 1.5rem;
+            margin-right: 5px;
+        }
+
+        .modal-review-text {
+            color: #e8e8e8;
+            line-height: 1.5;
+            margin-top: 10px;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+        }
+
+        .save-review-btn {
+            margin-top: 10px;
+        }
+
+        .empty-message {
+            text-align: center;
+            padding: 20px;
+            color: #777;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚔️ 三国杀辅助状态管理</h1>
+            <nav class="nav">
+                <a href="{{ url_for('routes.index_local') }}">状态面板</a>
+                <a href="{{ url_for('routes.skills') }}">技能库</a>
+                <a href="{{ url_for('routes.heroes') }}">武将库</a>
+                <a href="{{ url_for('routes.skill_pool') }}">技能池</a>
+                <a href="{{ url_for('routes.markers') }}">标记管理</a>
+                <a href="{{ url_for('routes.cards') }}">卡牌库</a>
+                <a href="{{ url_for('routes.equipment') }}">装备库</a>
+            </nav>
+        </header>
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- 武将详情弹窗 -->
+    <div id="heroDetailModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalHeroName">👤 武将详情</h2>
+                <button class="modal-close" onclick="closeHeroDetailModal()">×</button>
+            </div>
+            <div class="modal-body" id="modalContent">
+                <div style="text-align:center;padding:50px;color:#888;">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentHeroId = null;
+
+        // 处理英雄卡片点击事件（事件委托）
+        document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('click', function(e) {
+                const heroCard = e.target.closest('.hero-card');
+                if (heroCard && !e.target.closest('button')) {
+                    const href = heroCard.dataset.href;
+                    if (href) {
+                        window.location.href = href;
+                    }
+                }
+            });
+        });
+
+        function openHeroDetail(heroId) {
+            currentHeroId = heroId;
+            const overlay = document.getElementById('heroDetailModal');
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            document.getElementById('modalContent').innerHTML = '<div style="text-align:center;padding:50px;color:#888;">加载中...</div>';
+            
+            fetch(`/api/get_hero_detail/${heroId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    renderHeroDetail(data);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('modalContent').innerHTML = `<div class="empty-message">加载失败: ${error.message || '请重试'}</div>`;
+                });
+        }
+
+        function closeHeroDetailModal() {
+            const overlay = document.getElementById('heroDetailModal');
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+            currentHeroId = null;
+        }
+
+        // HTML 转义函数防止 XSS
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function renderHeroDetail(data) {
+            document.getElementById('modalHeroName').textContent = '👤 ' + (data.name || '未知');
+            
+            let avatarHtml = '';
+            if (data.detail && data.detail.avatar_url) {
+                avatarHtml = `<img src="${escapeHtml(data.detail.avatar_url)}" alt="${escapeHtml(data.name)}" class="modal-hero-avatar">`;
+            } else {
+                avatarHtml = '<div class="modal-hero-avatar" style="background:#444;width:120px;height:120px;display:flex;align-items:center;justify-content:center;color:#888;font-size:2rem;">👤</div>';
+            }
+
+            let skillsHtml = '';
+            if (data.skills && data.skills.length > 0) {
+                skillsHtml = data.skills.map(skill => {
+                    const typeClass = getSkillTypeClass(skill.type || '普通技');
+                    return `
+                        <div class="modal-item">
+                            <div class="modal-item-name">${escapeHtml(skill.name)} <span class="tag ${typeClass}" style="font-size:0.7rem;">${escapeHtml(skill.type || '普通技')}</span></div>
+                            <div class="modal-item-desc">${escapeHtml(skill.description)}</div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                skillsHtml = '<div class="empty-message">该武将暂无技能</div>';
+            }
+
+            let heroPoolHtml = '';
+            if (data.hero_pool && data.hero_pool.length > 0) {
+                heroPoolHtml = data.hero_pool.map(h => {
+                    return `
+                        <div class="modal-item">
+                            <div class="modal-item-name">${escapeHtml(h.name)} <span class="tag camp-${escapeHtml(h.camp)}">${escapeHtml(h.camp)}</span></div>
+                            <div class="modal-item-desc">${h.hp || 0} 体力</div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                heroPoolHtml = '<div class="empty-message">暂无独立武将池</div>';
+            }
+
+            let skillPoolHtml = '';
+            if (data.skill_pool && data.skill_pool.length > 0) {
+                skillPoolHtml = data.skill_pool.map(s => {
+                    return `
+                        <div class="modal-item">
+                            <div class="modal-item-name">${escapeHtml(s.name)} <span class="tag tag-normal">${escapeHtml(s.type || '普通技')}</span></div>
+                            <div class="modal-item-desc">${escapeHtml(s.description)}</div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                skillPoolHtml = '<div class="empty-message">暂无独立技能池</div>';
+            }
+
+            let markerPoolHtml = '';
+            if (data.marker_pool && data.marker_pool.length > 0) {
+                markerPoolHtml = data.marker_pool.map(m => {
+                    return `
+                        <div class="modal-item">
+                            <div class="modal-item-name">${escapeHtml(m.name)}</div>
+                            <div class="modal-item-desc">数量: <span style="color:#41b883;font-weight:600;">${m.count || 0}</span></div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                markerPoolHtml = '<div class="empty-message">暂无独立标记池</div>';
+            }
+
+            let reviewHtml = '';
+            if (data.detail && (data.detail.rating > 0 || data.detail.review)) {
+                reviewHtml = `
+                    <div class="modal-review-section">
+                        <div><span class="modal-rating">★ ${data.detail.rating || 0}</span><span style="color:#888;">评分</span></div>
+                        ${data.detail.review ? `<div class="modal-review-text">${escapeHtml(data.detail.review)}</div>` : ''}
+                    </div>
+                `;
+            }
+
+            const content = `
+                <div class="modal-hero-info">
+                    ${avatarHtml}
+                    <div class="modal-hero-stats">
+                        <div><span class="label">势力</span><br><span class="value camp-${escapeHtml(data.camp || '群')}">${escapeHtml(data.camp || '群')}</span></div>
+                        <div><span class="label">体力上限</span><br><span class="value" style="color:#41b883;">${data.hp || 0}</span></div>
+                        <div><span class="label">标签</span><br><span class="value"><span class="tag-${escapeHtml(data.tag || '标')}" style="padding:2px 8px;border-radius:4px;font-size:0.8rem;">${escapeHtml(data.tag || '标')}</span></span></div>
+                    </div>
+                </div>
+
+                <div class="modal-section">
+                    <h3>⚔️ 技能列表 (${data.skills ? data.skills.length : 0})</h3>
+                    <div class="modal-grid">${skillsHtml}</div>
+                </div>
+
+                <div class="modal-section">
+                    <h3>👥 武将池 (${data.hero_pool ? data.hero_pool.length : 0})</h3>
+                    <div class="modal-grid">${heroPoolHtml}</div>
+                </div>
+
+                <div class="modal-section">
+                    <h3>🎰 技能池 (${data.skill_pool ? data.skill_pool.length : 0})</h3>
+                    <div class="modal-grid">${skillPoolHtml}</div>
+                </div>
+
+                <div class="modal-section">
+                    <h3>📌 标记池 (${data.marker_pool ? data.marker_pool.length : 0})</h3>
+                    <div class="modal-grid">${markerPoolHtml}</div>
+                </div>
+
+                <div class="modal-section">
+                    <h3>📝 评价信息</h3>
+                    ${reviewHtml}
+                    <form method="post" action="/save_hero_detail" class="modal-review-form" onsubmit="return saveReview(event)">
+                        <input type="hidden" name="hero_id" value="${data.id}">
+                        <input type="hidden" name="hero_name" value="${escapeHtml(data.name)}">
+                        <div class="form-group" style="margin-bottom:10px;">
+                            <label>头像URL</label>
+                            <input type="text" name="avatar_url" value="${escapeHtml(data.detail ? data.detail.avatar_url || '' : '')}" placeholder="输入头像图片URL">
+                        </div>
+                        <div class="form-group" style="margin-bottom:10px;">
+                            <label>评分 (1-10)</label>
+                            <input type="number" name="rating" value="${data.detail ? data.detail.rating || 0 : 0}" min="0" max="10" style="width:100px;">
+                        </div>
+                        <div class="form-group" style="margin-bottom:10px;">
+                            <label>评价</label>
+                            <textarea name="review" placeholder="输入对该武将的评价...">${escapeHtml(data.detail ? data.detail.review || '' : '')}</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary save-review-btn">保存评价</button>
+                    </form>
+                </div>
+            `;
+
+            document.getElementById('modalContent').innerHTML = content;
+        }
+
+        function getSkillTypeClass(type) {
+            switch(type) {
+                case '限定技': return 'tag-limited';
+                case '锁定技': return 'tag-lock';
+                case '主公技': return 'tag-king';
+                default: return 'tag-normal';
+            }
+        }
+
+        function saveReview(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            fetch('/save_hero_detail', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // 保存成功，刷新弹窗内容
+                    if (currentHeroId) {
+                        openHeroDetail(currentHeroId);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Save error:', error);
+                alert('保存失败，请重试');
+            });
+            return false;
+        }
+
+        document.getElementById('heroDetailModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeHeroDetailModal();
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && document.getElementById('heroDetailModal').classList.contains('active')) {
+                closeHeroDetailModal();
+            }
+        });
+    </script>
+</body>
+</html>

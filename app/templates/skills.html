@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <h2>📚 技能数据库</h2>
+
+    <div class="filter-bar">
+        <form method="get" action="{{ url_for('routes.skills') }}" class="form-inline">
+            <input type="text" name="search" value="{{ search }}" placeholder="搜索技能...">
+            <select name="type">
+                <option value="">全部类型</option>
+                <option value="普通技" {% if skill_type == '普通技' %}selected{% endif %}>普通技</option>
+                <option value="限定技" {% if skill_type == '限定技' %}selected{% endif %}>限定技</option>
+                <option value="锁定技" {% if skill_type == '锁定技' %}selected{% endif %}>锁定技</option>
+                <option value="主公技" {% if skill_type == '主公技' %}selected{% endif %}>主公技</option>
+                <option value="觉醒技" {% if skill_type == '觉醒技' %}selected{% endif %}>觉醒技</option>
+                <option value="转换技" {% if skill_type == '转换技' %}selected{% endif %}>转换技</option>
+                <option value="持恒技" {% if skill_type == '持恒技' %}selected{% endif %}>持恒技</option>
+                <option value="反击技" {% if skill_type == '反击技' %}selected{% endif %}>反击技</option>
+                <option value="被动技" {% if skill_type == '被动技' %}selected{% endif %}>被动技</option>
+                <option value="主动技" {% if skill_type == '主动技' %}selected{% endif %}>主动技</option>
+                <option value="辅助技" {% if skill_type == '辅助技' %}selected{% endif %}>辅助技</option>
+                <option value="连击技" {% if skill_type == '连击技' %}selected{% endif %}>连击技</option>
+                <option value="转化技" {% if skill_type == '转化技' %}selected{% endif %}>转化技</option>
+                <option value="拼点技" {% if skill_type == '拼点技' %}selected{% endif %}>拼点技</option>
+                <option value="决斗技" {% if skill_type == '决斗技' %}selected{% endif %}>决斗技</option>
+                <option value="摸牌技" {% if skill_type == '摸牌技' %}selected{% endif %}>摸牌技</option>
+                <option value="控场技" {% if skill_type == '控场技' %}selected{% endif %}>控场技</option>
+            </select>
+            <button type="submit" class="btn btn-primary">筛选</button>
+            <a href="{{ url_for('routes.skills') }}" class="btn btn-secondary">重置</a>
+        </form>
+        <a href="{{ url_for('routes.add_skill') }}" class="btn btn-success">+ 添加技能</a>
+    </div>
+
+    {% if skills %}
+    <table>
+        <thead>
+            <tr>
+                <th>技能名</th>
+                <th>描述</th>
+                <th>类型</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for skill in skills %}
+            <tr>
+                <td><strong>{{ skill.name }}</strong></td>
+                <td style="max-width:400px;">{{ skill.description }}</td>
+                <td>
+                    {% if skill.skill_type == '限定技' %}
+                    <span class="tag tag-limited">{{ skill.skill_type }}</span>
+                    {% elif skill.skill_type == '锁定技' %}
+                    <span class="tag tag-lock">{{ skill.skill_type }}</span>
+                    {% elif skill.skill_type == '主公技' %}
+                    <span class="tag tag-king">{{ skill.skill_type }}</span>
+                    {% else %}
+                    <span class="tag tag-normal">{{ skill.skill_type }}</span>
+                    {% endif %}
+                </td>
+                <td class="actions">
+                    <form action="{{ url_for('routes.edit_skill', id=skill.id) }}" method="get" style="display:inline;">
+                        <button type="submit" class="btn btn-secondary btn-sm">编辑</button>
+                    </form>
+                    <form action="{{ url_for('routes.delete_skill', id=skill.id) }}" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('确定删除?')">删除</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty">没有找到匹配的技能</p>
+    {% endif %}
+</div>
+
+{% endblock %}

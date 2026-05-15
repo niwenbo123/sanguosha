@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <h2>👥 武将数据库</h2>
+
+    <div class="filter-bar">
+        <form method="get" action="{{ url_for('routes.heroes') }}" class="form-inline">
+            <input type="text" name="search" value="{{ search }}" placeholder="搜索武将...">
+            <select name="camp">
+                <option value="">全部势力</option>
+                <option value="魏" {% if camp == '魏' %}selected{% endif %}>魏</option>
+                <option value="蜀" {% if camp == '蜀' %}selected{% endif %}>蜀</option>
+                <option value="吴" {% if camp == '吴' %}selected{% endif %}>吴</option>
+                <option value="群" {% if camp == '群' %}selected{% endif %}>群</option>
+            </select>
+            <select name="tag">
+                <option value="">全部标签</option>
+                <option value="标" {% if tag == '标' %}selected{% endif %}>标</option>
+                <option value="界" {% if tag == '界' %}selected{% endif %}>界</option>
+                <option value="谋" {% if tag == '谋' %}selected{% endif %}>谋</option>
+                <option value="才子" {% if tag == '才子' %}selected{% endif %}>才子</option>
+                <option value="神" {% if tag == '神' %}selected{% endif %}>神</option>
+                <option value="sp" {% if tag == 'sp' %}selected{% endif %}>SP</option>
+                <option value="限定" {% if tag == '限定' %}selected{% endif %}>限定</option>
+                <option value="活动" {% if tag == '活动' %}selected{% endif %}>活动</option>
+            </select>
+            <button type="submit" class="btn btn-primary">筛选</button>
+            <a href="{{ url_for('routes.heroes') }}" class="btn btn-secondary">重置</a>
+            <a href="{{ url_for('routes.add_hero') }}" class="btn btn-success">+ 录入武将</a>
+        </form>
+    </div>
+
+    {% if heroes %}
+    <div class="grid">
+        {% for hero in heroes %}
+        <div class="item hero-card" data-hero-id="{{ hero.id }}" data-href="{{ url_for('routes.select_hero_for_local', id=hero.id) }}">
+            <div class="hero-info">
+                <div class="hero-name">{{ hero.name }}</div>
+                <div class="hero-tag tag-{{ hero.tag }}">{{ hero.tag }}</div>
+                <div class="hero-camp camp-{{ hero.camp }}">{{ hero.camp }}势力</div>
+                <div class="hero-hp">HP: {{ hero.hp }}</div>
+            </div>
+            <div class="skill-tags">
+                {% for skill in hero.skills %}
+                <span class="skill-tag">{{ skill.name }}</span>
+                {% endfor %}
+            </div>
+            <div style="margin-top:10px;">
+                <button class="btn btn-primary btn-sm" data-hero-id="{{ hero.id }}" onclick="event.stopPropagation(); openHeroDetail({{ hero.id }});">详情</button>
+            </div>
+            <div class="hero-action">点击进入状态面板</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty">没有找到匹配的武将</p>
+    {% endif %}
+</div>
+
+{% endblock %}

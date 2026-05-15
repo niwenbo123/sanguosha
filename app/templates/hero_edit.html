@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <h2>{% if hero %}编辑武将 - {{ hero.name }}{% else %}录入新武将{% endif %}</h2>
+    
+    {% if error %}
+    <div style="background:rgba(231,76,60,0.2);padding:10px;border-radius:5px;color:#e74c3c;margin-bottom:15px;">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="post" style="max-width:600px;">
+        <div class="form-group">
+            <label>武将名称 *</label>
+            <input type="text" name="name" value="{{ hero.name if hero else '' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label>势力</label>
+            <select name="camp">
+                <option value="魏" {% if hero and hero.camp == '魏' %}selected{% endif %}>魏</option>
+                <option value="蜀" {% if hero and hero.camp == '蜀' %}selected{% endif %}>蜀</option>
+                <option value="吴" {% if hero and hero.camp == '吴' %}selected{% endif %}>吴</option>
+                <option value="群" {% if hero and hero.camp == '群' %}selected{% endif %}>群</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>武将标签</label>
+            <select name="tag">
+                <option value="标" {% if hero and hero.tag == '标' %}selected{% endif %}>标</option>
+                <option value="界" {% if hero and hero.tag == '界' %}selected{% endif %}>界</option>
+                <option value="谋" {% if hero and hero.tag == '谋' %}selected{% endif %}>谋</option>
+                <option value="才子" {% if hero and hero.tag == '才子' %}selected{% endif %}>才子</option>
+                <option value="神" {% if hero and hero.tag == '神' %}selected{% endif %}>神</option>
+                <option value="sp" {% if hero and hero.tag == 'sp' %}selected{% endif %}>SP</option>
+                <option value="限定" {% if hero and hero.tag == '限定' %}selected{% endif %}>限定</option>
+                <option value="活动" {% if hero and hero.tag == '活动' %}selected{% endif %}>活动</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>体力上限 *</label>
+            <input type="number" name="hp" value="{{ hero.hp if hero else '4' }}" min="1" max="16" required>
+        </div>
+
+        <div class="form-group">
+            <label>拥有技能</label>
+            <div style="max-height:300px;overflow-y:auto;background:rgba(255,255,255,0.05);padding:15px;border-radius:8px;">
+                {% for skill in all_skills %}
+                <div class="checkbox-group" style="padding:5px 0;">
+                    <input type="checkbox" name="skills" value="{{ skill.name }}" id="skill_{{ skill.id }}"
+                           {% if hero and skill in hero.skills %}checked{% endif %}>
+                    <label for="skill_{{ skill.id }}">{{ skill.name }}</label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:20px;">
+            <button type="submit" class="btn btn-primary">{% if hero %}保存修改{% else %}录入武将{% endif %}</button>
+            {% if hero %}
+            <a href="{{ url_for('routes.hero_detail', id=hero.id) }}" class="btn btn-secondary">取消</a>
+            {% else %}
+            <a href="{{ url_for('routes.heroes') }}" class="btn btn-secondary">取消</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+{% endblock %}

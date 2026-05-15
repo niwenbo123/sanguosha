@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <h2>⚔️ 装备库</h2>
+
+    <div class="filter-bar">
+        <form method="get" action="{{ url_for('routes.equipment') }}" class="form-inline">
+            <input type="text" name="search" value="{{ search }}" placeholder="搜索装备...">
+            <select name="type">
+                <option value="">全部类型</option>
+                <option value="武器" {% if equip_type == '武器' %}selected{% endif %}>武器</option>
+                <option value="防具" {% if equip_type == '防具' %}selected{% endif %}>防具</option>
+                <option value="坐骑" {% if equip_type == '坐骑' %}selected{% endif %}>坐骑</option>
+                <option value="宝物" {% if equip_type == '宝物' %}selected{% endif %}>宝物</option>
+            </select>
+            <button type="submit" class="btn btn-primary">筛选</button>
+            <a href="{{ url_for('routes.equipment') }}" class="btn btn-secondary">重置</a>
+            <button type="button" onclick="showAddEquipForm()" class="btn btn-success">+ 录入装备</button>
+        </form>
+    </div>
+
+    <div id="addEquipForm" style="display:none;background:rgba(255,255,255,0.05);padding:20px;border-radius:10px;margin-bottom:20px;">
+        <h3 style="color:#fff;margin-bottom:15px;">录入新装备</h3>
+        <form action="{{ url_for('routes.add_equipment') }}" method="post">
+            <div class="form-group">
+                <label>装备名称 *</label>
+                <input type="text" name="name" required>
+            </div>
+            <div class="form-group">
+                <label>装备类型</label>
+                <select name="equip_type">
+                    <option value="武器">武器</option>
+                    <option value="防具">防具</option>
+                    <option value="坐骑">坐骑</option>
+                    <option value="宝物">宝物</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>描述</label>
+                <textarea name="description" rows="2" style="width:100%;"></textarea>
+            </div>
+            <div style="display:flex;gap:10px;">
+                <button type="submit" class="btn btn-primary">录入</button>
+                <button type="button" onclick="hideAddEquipForm()" class="btn btn-secondary">取消</button>
+            </div>
+        </form>
+    </div>
+
+    {% if equipment %}
+    <div class="grid">
+        {% for equip in equipment %}
+        <div class="item {% if equip.is_active %}equipment-active{% endif %}">
+            <div style="display:flex;justify-content:space-between;align-items:start;">
+                <div>
+                    <div class="item-name">{{ equip.name }}</div>
+                    <div class="item-desc">{{ equip.description }}</div>
+                </div>
+                {% if equip.is_active %}
+                <span class="tag" style="background:#27ae60;">已装备</span>
+                {% endif %}
+            </div>
+            <div class="item-meta" style="margin-top:10px;">
+                <span class="tag tag-normal">{{ equip.equip_type }}</span>
+            </div>
+            <div style="margin-top:15px;">
+                <form action="{{ url_for('routes.toggle_equipment', id=equip.id) }}" method="post" style="display:inline;">
+                    <button type="submit" class="btn {% if equip.is_active %}btn-danger{% else %}btn-success{% endif %} btn-sm">
+                        {% if equip.is_active %}卸下{% else %}装备{% endif %}
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty">没有找到匹配的装备</p>
+    {% endif %}
+</div>
+
+<script>
+function showAddEquipForm() {
+    document.getElementById('addEquipForm').style.display = 'block';
+}
+function hideAddEquipForm() {
+    document.getElementById('addEquipForm').style.display = 'none';
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,697 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card">
+    <h2>控制面板</h2>
+    <div class="form-inline" style="gap: 20px;">
+        <label class="checkbox-group">
+            <input type="checkbox" id="show_avatar_skills" checked>
+            <span>显示化身技能</span>
+        </label>
+        <label class="checkbox-group">
+            <input type="checkbox" id="show_hero_draw" checked>
+            <span>显示武将抽取</span>
+        </label>
+        <label class="checkbox-group">
+            <input type="checkbox" id="show_skill_draw" checked>
+            <span>显示技能抽取</span>
+        </label>
+        <label class="checkbox-group">
+            <input type="checkbox" id="show_markers" checked>
+            <span>显示标记状态</span>
+        </label>
+        <label class="checkbox-group">
+            <input type="checkbox" id="show_equipment" checked>
+            <span>显示装备</span>
+        </label>
+        <button class="btn btn-secondary btn-sm" onclick="showMarkerSelector()">选择标记</button>
+        <button class="btn btn-danger btn-sm" onclick="clearAllState()">清空状态</button>
+    </div>
+</div>
+
+<div class="card">
+    <h2>游戏状态</h2>
+    <div class="game-state">
+        <div class="game-state-item">
+            <label>当前武将:</label>
+            <input type="text" id="current_hero" value="{{ current_hero.name if current_hero else '' }}" readonly>
+        </div>
+        <div class="game-state-item">
+            <label>血量:</label>
+            <input type="number" id="current_hp" value="{{ current_hero.hp if current_hero else 4 }}" min="0">
+            <span>/</span>
+            <input type="number" id="max_hp" value="{{ current_hero.hp if current_hero else 4 }}" min="1">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="changeHero()">选择武将</button>
+    </div>
+</div>
+
+<div class="card">
+    <h2>当前武将技能</h2>
+    <div id="current_hero_skills" class="current-skills">
+        {% for skill in current_hero_skills %}
+        <div class="current-skill tooltip-container">
+            <span>{{ skill.name }}</span>
+            <span class="tag tag-{{ skill.type | lower }}" style="margin-left: 5px;">{{ skill.type }}</span>
+            <span class="tooltip-text">{{ skill.description }}</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% if not current_hero_skills %}
+    <p class="empty">暂无武将技能，点击"选择武将"选择一个武将</p>
+    {% endif %}
+</div>
+
+<div id="avatar_skills_section" class="card" style="display: none;">
+    <h2>化身技能</h2>
+    <div id="avatar_skills" class="current-skills">
+    </div>
+    <p class="empty" id="avatar_empty">暂无化身技能，从技能池中抽取技能</p>
+</div>
+
+<div id="hero_draw_section" class="card" style="display: none;">
+    <h2>武将抽取</h2>
+    <div class="form-inline">
+        <div class="form-group">
+            <label>抽取数量:</label>
+            <input type="number" id="hero_draw_count" value="1" min="1" max="5">
+        </div>
+        <button class="btn btn-primary" onclick="drawHero()">抽取武将</button>
+    </div>
+    <div id="drawn_heroes" class="grid" style="margin-top: 15px;">
+    </div>
+</div>
+
+<div id="skill_draw_section" class="card" style="display: none;">
+    <h2>技能抽取</h2>
+    <div class="form-inline">
+        <div class="form-group">
+            <label>抽取数量:</label>
+            <input type="number" id="skill_draw_count" value="3" min="1" max="10">
+        </div>
+        <div class="form-group">
+            <label>保留数量:</label>
+            <input type="number" id="skill_keep_count" value="1" min="1" max="5">
+        </div>
+        <button class="btn btn-primary" onclick="drawSkills()">抽取技能</button>
+    </div>
+    <div id="drawn_skills" class="current-skills" style="margin-top: 15px;">
+    </div>
+</div>
+
+<div id="markers_section" class="card" style="display: none;">
+    <h2>标记状态</h2>
+    <div id="selected_markers" class="markers-grid">
+    </div>
+</div>
+
+<div id="equipment_section" class="card" style="display: none;">
+    <h2>装备</h2>
+    <div id="selected_equipment" class="grid">
+    </div>
+</div>
+
+<div id="hero_modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>选择武将</h3>
+            <span class="close" onclick="closeModal('hero_modal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <input type="text" id="hero_search" placeholder="搜索武将..." onkeyup="filterHeroes()">
+            <div id="hero_list" class="grid">
+                {% for hero in all_heroes %}
+                <div class="item hero-card" data-id="{{ hero.id }}" data-name="{{ hero.name }}" 
+                     data-camp="{{ hero.camp }}" data-hp="{{ hero.hp }}"
+                     onclick="selectHero(this)">
+                    <div class="hero-info">
+                        <div class="hero-name">{{ hero.name }}</div>
+                        <div class="hero-camp camp-{{ hero.camp }}">{{ hero.camp }}</div>
+                        <div class="hero-hp">{{ hero.hp }}血</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="marker_modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>选择要显示的标记</h3>
+            <span class="close" onclick="closeModal('marker_modal')">&times;</span>
+        </div>
+        <div class="modal-body">
+            <input type="text" id="marker_search" placeholder="搜索标记..." onkeyup="filterMarkers()">
+            <div id="marker_list">
+                {% for marker in all_markers %}
+                <label class="checkbox-group" style="display: block; margin: 8px 0;">
+                    <input type="checkbox" class="marker_check" value="{{ marker.name }}" 
+                           data-count="{{ marker.count }}">
+                    <span>{{ marker.name }} ({{ marker.count }})</span>
+                </label>
+                {% endfor %}
+            </div>
+            <div style="margin-top: 20px;">
+                <button class="btn btn-primary" onclick="confirmMarkers()">确认选择</button>
+                <button class="btn btn-secondary" onclick="closeModal('marker_modal')">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let heroMarkersData = {{ hero_markers | tojson }};
+let currentState = {
+    current_hero: '{{ current_hero.name if current_hero else "" }}',
+    current_hp: {{ current_hero.hp if current_hero else 4 }},
+    max_hp: {{ current_hero.hp if current_hero else 4 }},
+    current_hero_skills: {{ current_hero_skills | tojson }},
+    avatar_skills: [],
+    drawn_heroes: [],
+    drawn_skills: [],
+    selected_markers: {},
+    selected_equipment: [],
+    show_avatar_skills: true,
+    show_hero_draw: true,
+    show_skill_draw: true,
+    show_markers: true,
+    show_equipment: true
+};
+
+function loadState() {
+    const saved = localStorage.getItem('sgs_state');
+    if (saved) {
+        const savedState = JSON.parse(saved);
+        Object.assign(currentState, savedState);
+        
+        document.getElementById('current_hero').value = currentState.current_hero;
+        document.getElementById('current_hp').value = currentState.current_hp;
+        document.getElementById('max_hp').value = currentState.max_hp;
+        
+        renderHeroSkills(currentState.current_hero_skills);
+        renderAvatarSkills(currentState.avatar_skills);
+        renderSelectedMarkers();
+        renderSelectedEquipment();
+    }
+}
+
+function saveState() {
+    localStorage.setItem('sgs_state', JSON.stringify(currentState));
+}
+
+function renderHeroSkills(skills) {
+    const container = document.getElementById('current_hero_skills');
+    container.innerHTML = '';
+    
+    if (skills.length === 0) {
+        container.innerHTML = '<p class="empty">暂无武将技能</p>';
+        return;
+    }
+    
+    skills.forEach(skill => {
+        const div = document.createElement('div');
+        div.className = 'current-skill tooltip-container';
+        div.innerHTML = `<span>${skill.name}</span><span class="tag tag-${skill.type.toLowerCase()}" style="margin-left: 5px;">${skill.type}</span><span class="tooltip-text">${skill.description}</span>`;
+        div.addEventListener('click', function(e) {
+            e.stopPropagation();
+            this.classList.toggle('active');
+            document.querySelectorAll('.tooltip-container').forEach(el => {
+                if (el !== this) el.classList.remove('active');
+            });
+        });
+        container.appendChild(div);
+    });
+}
+
+function renderAvatarSkills(skills) {
+    const container = document.getElementById('avatar_skills');
+    const empty = document.getElementById('avatar_empty');
+    
+    if (skills.length === 0) {
+        container.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+    }
+    
+    empty.style.display = 'none';
+    container.innerHTML = '';
+    
+    skills.forEach((skill, index) => {
+        const div = document.createElement('div');
+        div.className = 'current-skill';
+        
+        const tooltipSpan = document.createElement('span');
+        tooltipSpan.className = 'tooltip-container';
+        tooltipSpan.innerHTML = `
+            <span>${skill.name}</span>
+            <span class="tag tag-${skill.type.toLowerCase()}" style="margin-left: 5px;">化身技</span>
+            <span class="tooltip-text">${skill.description}</span>
+        `;
+        tooltipSpan.addEventListener('click', function(e) {
+            e.stopPropagation();
+            this.classList.toggle('active');
+            document.querySelectorAll('.tooltip-container').forEach(el => {
+                if (el !== this) el.classList.remove('active');
+            });
+        });
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'btn btn-danger btn-sm';
+        removeBtn.style.marginLeft = '5px';
+        removeBtn.textContent = '移除';
+        removeBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            removeAvatarSkill(index);
+        });
+        
+        div.appendChild(tooltipSpan);
+        div.appendChild(removeBtn);
+        container.appendChild(div);
+    });
+}
+
+function removeAvatarSkill(index) {
+    currentState.avatar_skills.splice(index, 1);
+    renderAvatarSkills(currentState.avatar_skills);
+    saveState();
+}
+
+function renderSelectedMarkers() {
+    const container = document.getElementById('selected_markers');
+    container.innerHTML = '';
+    
+    const markers = Object.keys(currentState.selected_markers);
+    if (markers.length === 0) {
+        container.innerHTML = '<p class="empty">暂无选中的标记</p>';
+        return;
+    }
+    
+    markers.forEach(name => {
+        const count = currentState.selected_markers[name];
+        const div = document.createElement('div');
+        div.className = 'marker-item';
+        div.innerHTML = `
+            <div class="marker-name">${name}</div>
+            <div class="marker-count">${count}</div>
+            <div class="marker-controls">
+                <button class="btn btn-secondary btn-sm" onclick="updateMarker('${name}', -1)">-</button>
+                <button class="btn btn-secondary btn-sm" onclick="updateMarker('${name}', 1)">+</button>
+                <button class="btn btn-danger btn-sm" onclick="removeMarker('${name}')">×</button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function updateMarker(name, delta) {
+    currentState.selected_markers[name] = Math.max(0, (currentState.selected_markers[name] || 0) + delta);
+    if (currentState.selected_markers[name] === 0) {
+        delete currentState.selected_markers[name];
+    }
+    renderSelectedMarkers();
+    saveState();
+}
+
+function removeMarker(name) {
+    delete currentState.selected_markers[name];
+    renderSelectedMarkers();
+    saveState();
+}
+
+function renderSelectedEquipment() {
+    const container = document.getElementById('selected_equipment');
+    container.innerHTML = '';
+    
+    if (currentState.selected_equipment.length === 0) {
+        container.innerHTML = '<p class="empty">暂无装备</p>';
+        return;
+    }
+    
+    currentState.selected_equipment.forEach((equip, index) => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = `
+            <div class="item-name">${equip.name}</div>
+            <div class="tag tag-${equip.equip_type}">${equip.equip_type}</div>
+            <div class="item-desc">${equip.description || ''}</div>
+            <button class="btn btn-danger btn-sm" style="margin-top: 10px;" onclick="removeEquipment(${index})">移除</button>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function removeEquipment(index) {
+    currentState.selected_equipment.splice(index, 1);
+    renderSelectedEquipment();
+    saveState();
+}
+
+function changeHero() {
+    document.getElementById('hero_modal').style.display = 'block';
+}
+
+function selectHero(element) {
+    const id = element.dataset.id;
+    const name = element.dataset.name;
+    const hp = parseInt(element.dataset.hp);
+    
+    Promise.all([
+        fetch(`/api/get_hero_skills/${id}`).then(res => res.json()),
+        fetch(`/api/get_marker_pool/${encodeURIComponent(name)}`).then(res => res.json())
+    ]).then(([skills, markers]) => {
+        currentState.current_hero = name;
+        currentState.current_hp = hp;
+        currentState.max_hp = hp;
+        currentState.current_hero_skills = skills;
+        currentState.avatar_skills = [];
+        currentState.drawn_heroes = [];
+        currentState.drawn_skills = [];
+        currentState.selected_markers = {};
+        
+        markers.forEach(marker => {
+            currentState.selected_markers[marker.name] = marker.count;
+        });
+        
+        document.getElementById('current_hero').value = name;
+        document.getElementById('current_hp').value = hp;
+        document.getElementById('max_hp').value = hp;
+        
+        renderHeroSkills(skills);
+        renderAvatarSkills([]);
+        renderSelectedMarkers();
+        closeModal('hero_modal');
+        localStorage.removeItem('sgs_state');
+        saveState();
+    });
+}
+
+function filterHeroes() {
+    const search = document.getElementById('hero_search').value.toLowerCase();
+    const items = document.querySelectorAll('.hero-card');
+    
+    items.forEach(item => {
+        const name = item.dataset.name.toLowerCase();
+        const camp = item.dataset.camp.toLowerCase();
+        if (name.includes(search) || camp.includes(search)) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+function showMarkerSelector() {
+    document.querySelectorAll('.marker_check').forEach(checkbox => {
+        checkbox.checked = currentState.selected_markers[checkbox.value] !== undefined;
+    });
+    document.getElementById('marker_modal').style.display = 'block';
+}
+
+function filterMarkers() {
+    const search = document.getElementById('marker_search').value.toLowerCase();
+    const labels = document.querySelectorAll('#marker_list label');
+    
+    labels.forEach(label => {
+        const text = label.textContent.toLowerCase();
+        if (text.includes(search)) {
+            label.style.display = 'block';
+        } else {
+            label.style.display = 'none';
+        }
+    });
+}
+
+function confirmMarkers() {
+    const checkboxes = document.querySelectorAll('.marker_check:checked');
+    const newMarkers = {};
+    
+    checkboxes.forEach(checkbox => {
+        const name = checkbox.value;
+        const count = parseInt(checkbox.dataset.count) || 0;
+        if (!currentState.selected_markers[name]) {
+            currentState.selected_markers[name] = count;
+        }
+    });
+    
+    closeModal('marker_modal');
+    renderSelectedMarkers();
+    saveState();
+}
+
+function drawHero() {
+    const count = parseInt(document.getElementById('hero_draw_count').value);
+    
+    fetch(`/api/get_hero_pool/${encodeURIComponent(currentState.current_hero || '')}`)
+        .then(res => res.json())
+        .then(heroes => {
+            if (heroes.length === 0) {
+                alert('该武将没有独立武将池，使用全部武将');
+                fetch('/api/get_hero_pool/')
+                    .then(res => res.json())
+                    .then(allHeroes => {
+                        if (allHeroes.length === 0) {
+                            alert('没有可用的武将');
+                            return;
+                        }
+                        drawFromList(allHeroes, count);
+                    });
+                return;
+            }
+            drawFromList(heroes, count);
+        });
+}
+
+function drawFromList(list, count) {
+    const shuffled = [...list].sort(() => Math.random() - 0.5);
+    const drawn = shuffled.slice(0, Math.min(count, shuffled.length));
+    
+    currentState.drawn_heroes = drawn;
+    
+    const container = document.getElementById('drawn_heroes');
+    container.innerHTML = '';
+    
+    drawn.forEach(hero => {
+        const div = document.createElement('div');
+        div.className = 'item hero-card';
+        div.innerHTML = `
+            <div class="hero-info">
+                <div class="hero-name">${hero.name}</div>
+                <div class="hero-camp camp-${hero.camp}">${hero.camp}</div>
+                <div class="hero-hp">${hero.hp}血</div>
+            </div>
+            <button class="btn btn-primary btn-sm" style="margin-top: 10px; width: 100%;" onclick="confirmHero(${hero.id})">选择</button>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function confirmHero(heroId) {
+    fetch(`/api/get_hero_skills/${heroId}`)
+        .then(res => res.json())
+        .then(skills => {
+            const hero = currentState.drawn_heroes.find(h => h.id === heroId);
+            if (hero) {
+                skills.forEach(skill => {
+                    const exists = currentState.avatar_skills.some(s => s.name === skill.name);
+                    if (!exists) {
+                        currentState.avatar_skills.push({
+                            name: skill.name,
+                            description: skill.description,
+                            type: skill.type
+                        });
+                    }
+                });
+                
+                renderAvatarSkills(currentState.avatar_skills);
+                document.getElementById('drawn_heroes').innerHTML = '';
+                saveState();
+            }
+        });
+}
+
+function drawSkills() {
+    const drawCount = parseInt(document.getElementById('skill_draw_count').value);
+    const keepCount = parseInt(document.getElementById('skill_keep_count').value);
+    
+    fetch(`/api/get_skill_pool/${encodeURIComponent(currentState.current_hero || '')}`)
+        .then(res => res.json())
+        .then(skills => {
+            if (skills.length === 0) {
+                alert('该武将没有独立技能池，请先在技能池中添加技能');
+                return;
+            }
+            
+            const shuffled = [...skills].sort(() => Math.random() - 0.5);
+            const drawn = shuffled.slice(0, Math.min(drawCount, shuffled.length));
+            const kept = drawn.slice(0, Math.min(keepCount, drawn.length));
+            
+            currentState.drawn_skills = drawn;
+            currentState.avatar_skills = [...currentState.avatar_skills, ...kept];
+            
+            renderAvatarSkills(currentState.avatar_skills);
+            saveState();
+        });
+}
+
+function clearAllState() {
+    if (confirm('确定要清空所有状态吗？')) {
+        currentState.current_hero = '';
+        currentState.current_hp = 4;
+        currentState.max_hp = 4;
+        currentState.current_hero_skills = [];
+        currentState.avatar_skills = [];
+        currentState.drawn_heroes = [];
+        currentState.drawn_skills = [];
+        currentState.selected_markers = {};
+        currentState.selected_equipment = [];
+        currentState.show_avatar_skills = true;
+        currentState.show_hero_draw = true;
+        currentState.show_skill_draw = true;
+        currentState.show_markers = true;
+        currentState.show_equipment = true;
+        
+        document.getElementById('current_hero').value = '';
+        document.getElementById('current_hp').value = 4;
+        document.getElementById('max_hp').value = 4;
+        
+        renderHeroSkills([]);
+        renderAvatarSkills([]);
+        renderSelectedMarkers();
+        renderSelectedEquipment();
+        
+        localStorage.removeItem('sgs_state');
+    }
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+}
+
+function initSections() {
+    const sections = [
+        { checkbox: 'show_avatar_skills', section: 'avatar_skills_section' },
+        { checkbox: 'show_hero_draw', section: 'hero_draw_section' },
+        { checkbox: 'show_skill_draw', section: 'skill_draw_section' },
+        { checkbox: 'show_markers', section: 'markers_section' },
+        { checkbox: 'show_equipment', section: 'equipment_section' }
+    ];
+    
+    sections.forEach(item => {
+        const checkbox = document.getElementById(item.checkbox);
+        const section = document.getElementById(item.section);
+        
+        checkbox.addEventListener('change', () => {
+            section.style.display = checkbox.checked ? 'block' : 'none';
+            currentState[item.checkbox] = checkbox.checked;
+            saveState();
+        });
+        
+        if (checkbox.checked) {
+            section.style.display = 'block';
+        }
+    });
+}
+
+document.getElementById('current_hp').addEventListener('change', () => {
+    currentState.current_hp = parseInt(document.getElementById('current_hp').value);
+    saveState();
+});
+
+document.getElementById('max_hp').addEventListener('change', () => {
+    currentState.max_hp = parseInt(document.getElementById('max_hp').value);
+    saveState();
+});
+
+window.onclick = function(event) {
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+}
+
+function initHeroMarkers() {
+    if (heroMarkersData.length > 0 && Object.keys(currentState.selected_markers).length === 0) {
+        heroMarkersData.forEach(marker => {
+            currentState.selected_markers[marker.name] = marker.count;
+        });
+        renderSelectedMarkers();
+        saveState();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadState();
+    initHeroMarkers();
+    initSections();
+});
+</script>
+
+<style>
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.7);
+}
+
+.modal-content {
+    background-color: #323236;
+    margin: 10% auto;
+    padding: 0;
+    border: 1px solid #444;
+    width: 90%;
+    max-width: 800px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+}
+
+.modal-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid #444;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    color: #41b883;
+    margin: 0;
+}
+
+.close {
+    color: #aaa;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: #fff;
+}
+
+.modal-body {
+    padding: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.modal-body input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    background: #2a2a2e;
+    border: 1px solid #444;
+    border-radius: 5px;
+    color: #e8e8e8;
+}
+</style>
+{% endblock %}

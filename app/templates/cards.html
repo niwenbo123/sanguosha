@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <h2>🃏 卡牌库</h2>
+
+    <div class="filter-bar">
+        <form method="get" action="{{ url_for('routes.cards') }}" class="form-inline">
+            <input type="text" name="search" value="{{ search }}" placeholder="搜索卡牌...">
+            <select name="type">
+                <option value="">全部类型</option>
+                <option value="基本牌" {% if card_type == '基本牌' %}selected{% endif %}>基本牌</option>
+                <option value="锦囊牌" {% if card_type == '锦囊牌' %}selected{% endif %}>锦囊牌</option>
+                <option value="装备牌" {% if card_type == '装备牌' %}selected{% endif %}>装备牌</option>
+            </select>
+            <button type="submit" class="btn btn-primary">筛选</button>
+            <a href="{{ url_for('routes.cards') }}" class="btn btn-secondary">重置</a>
+            <button type="button" onclick="showAddCardForm()" class="btn btn-success">+ 录入卡牌</button>
+        </form>
+    </div>
+
+    <div id="addCardForm" style="display:none;background:rgba(255,255,255,0.05);padding:20px;border-radius:10px;margin-bottom:20px;">
+        <h3 style="color:#fff;margin-bottom:15px;">录入新卡牌</h3>
+        <form action="{{ url_for('routes.add_card') }}" method="post">
+            <div class="form-group">
+                <label>卡牌名称 *</label>
+                <input type="text" name="name" required>
+            </div>
+            <div class="form-group">
+                <label>卡牌类型</label>
+                <select name="card_type">
+                    <option value="基本牌">基本牌</option>
+                    <option value="锦囊牌">锦囊牌</option>
+                    <option value="装备牌">装备牌</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>描述</label>
+                <textarea name="description" rows="2" style="width:100%;"></textarea>
+            </div>
+            <div style="display:flex;gap:10px;">
+                <button type="submit" class="btn btn-primary">录入</button>
+                <button type="button" onclick="hideAddCardForm()" class="btn btn-secondary">取消</button>
+            </div>
+        </form>
+    </div>
+
+    {% if cards %}
+    <div class="grid">
+        {% for card in cards %}
+        <div class="item">
+            <div class="item-name">{{ card.name }}</div>
+            <div class="item-desc">{{ card.description }}</div>
+            <div class="item-meta">
+                <span class="tag {% if card.card_type == '基本牌' %}tag-normal{% else %}tag-limited{% endif %}">
+                    {{ card.card_type }}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty">没有找到匹配的卡牌</p>
+    {% endif %}
+</div>
+
+<script>
+function showAddCardForm() {
+    document.getElementById('addCardForm').style.display = 'block';
+}
+function hideAddCardForm() {
+    document.getElementById('addCardForm').style.display = 'none';
+}
+</script>
+
+{% endblock %}

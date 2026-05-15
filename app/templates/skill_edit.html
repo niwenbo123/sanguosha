@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <h2>{{ '编辑' if skill else '添加' }}技能</h2>
+
+    <form method="post" style="max-width:600px;">
+        <div class="form-group">
+            <label>技能名称 *</label>
+            <input type="text" name="name" value="{{ skill.name if skill else '' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label>技能描述 *</label>
+            <textarea name="description" required>{{ skill.description if skill else '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label>技能类型</label>
+            <select name="skill_type">
+                <option value="普通技" {% if skill and skill.skill_type == '普通技' %}selected{% endif %}>普通技</option>
+                <option value="限定技" {% if skill and skill.skill_type == '限定技' %}selected{% endif %}>限定技</option>
+                <option value="锁定技" {% if skill and skill.skill_type == '锁定技' %}selected{% endif %}>锁定技</option>
+                <option value="主公技" {% if skill and skill.skill_type == '主公技' %}selected{% endif %}>主公技</option>
+                <option value="觉醒技" {% if skill and skill.skill_type == '觉醒技' %}selected{% endif %}>觉醒技</option>
+                <option value="转换技" {% if skill and skill.skill_type == '转换技' %}selected{% endif %}>转换技</option>
+                <option value="持恒技" {% if skill and skill.skill_type == '持恒技' %}selected{% endif %}>持恒技</option>
+                <option value="反击技" {% if skill and skill.skill_type == '反击技' %}selected{% endif %}>反击技</option>
+                <option value="被动技" {% if skill and skill.skill_type == '被动技' %}selected{% endif %}>被动技</option>
+                <option value="主动技" {% if skill and skill.skill_type == '主动技' %}selected{% endif %}>主动技</option>
+                <option value="辅助技" {% if skill and skill.skill_type == '辅助技' %}selected{% endif %}>辅助技</option>
+                <option value="连击技" {% if skill and skill.skill_type == '连击技' %}selected{% endif %}>连击技</option>
+                <option value="转化技" {% if skill and skill.skill_type == '转化技' %}selected{% endif %}>转化技</option>
+                <option value="拼点技" {% if skill and skill.skill_type == '拼点技' %}selected{% endif %}>拼点技</option>
+                <option value="决斗技" {% if skill and skill.skill_type == '决斗技' %}selected{% endif %}>决斗技</option>
+                <option value="摸牌技" {% if skill and skill.skill_type == '摸牌技' %}selected{% endif %}>摸牌技</option>
+                <option value="控场技" {% if skill and skill.skill_type == '控场技' %}selected{% endif %}>控场技</option>
+            </select>
+        </div>
+
+        
+
+        {% if error %}
+        <p style="color:#e74c3c;margin-bottom:15px;">{{ error }}</p>
+        {% endif %}
+
+        <div style="display:flex;gap:10px;">
+            <button type="submit" class="btn btn-primary">{{ '保存修改' if skill else '添加技能' }}</button>
+            <a href="{{ url_for('routes.skills') }}" class="btn btn-secondary">取消</a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

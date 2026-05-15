@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <h2>👤 {{ hero.name }}</h2>
+        <div style="display:flex;gap:10px;">
+            <a href="{{ url_for('routes.select_hero_for_local', id=hero.id) }}" class="btn btn-primary">进入状态面板</a>
+            <a href="{{ url_for('routes.edit_hero', id=hero.id) }}" class="btn btn-secondary">编辑武将</a>
+        </div>
+    </div>
+
+    <div style="display:flex;gap:30px;flex-wrap:wrap;margin-bottom:30px;">
+        <div class="item" style="min-width:200px;">
+            <div style="color:#888;">势力</div>
+            <div class="hero-camp camp-{{ hero.camp }}" style="font-size:1.5rem;">{{ hero.camp }}</div>
+        </div>
+        <div class="item" style="min-width:200px;">
+            <div style="color:#888;">体力上限</div>
+            <div style="font-size:1.5rem;color:#41b883;">{{ hero.hp }}</div>
+        </div>
+        {% if hero_detail and hero_detail.avatar_url %}
+        <div class="item" style="min-width:200px;">
+            <img src="{{ hero_detail.avatar_url }}" alt="{{ hero.name }}" style="max-width:100px;max-height:100px;border-radius:8px;">
+        </div>
+        {% endif %}
+    </div>
+
+    <h3 style="color:#41b883;margin-bottom:15px;padding-bottom:10px;border-bottom:2px solid #41b883;">
+        技能列表 ({{ hero.skills|length }}个)
+    </h3>
+    {% if hero.skills %}
+    <div class="grid">
+        {% for skill in hero.skills %}
+        <div class="item">
+            <div class="item-name">{{ skill.name }}</div>
+            <div class="item-desc">{{ skill.description }}</div>
+            <div class="skill-tags">
+                <span class="skill-tag {% if skill.skill_type == '限定技' %}tag-limited{% elif skill.skill_type == '锁定技' %}tag-lock{% elif skill.skill_type == '主公技' %}tag-king{% else %}tag-normal{% endif %}">
+                    {{ skill.skill_type }}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty">该武将暂无技能</p>
+    {% endif %}
+
+    <h3 style="color:#41b883;margin:30px 0 15px;padding-bottom:10px;border-bottom:2px solid #41b883;">
+        武将池 ({{ hero_pool|length }}个)
+    </h3>
+    {% if hero_pool %}
+    <div class="grid">
+        {% for pool_hero in hero_pool %}
+        <div class="item hero-card">
+            <div class="hero-info">
+                <div class="hero-name">{{ pool_hero.name }}</div>
+                <div class="hero-camp camp-{{ pool_hero.camp }}">{{ pool_hero.camp }}</div>
+                <div class="hero-hp">{{ pool_hero.hp }}血</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty">该武将暂无独立武将池</p>
+    {% endif %}
+
+    <h3 style="color:#41b883;margin:30px 0 15px;padding-bottom:10px;border-bottom:2px solid #41b883;">
+        技能池 ({{ skill_pool|length }}个)
+    </h3>
+    {% if skill_pool %}
+    <div class="grid">
+        {% for pool_skill in skill_pool %}
+        <div class="item">
+            <div class="item-name">{{ pool_skill.name }}</div>
+            <div class="item-desc">{{ pool_skill.description }}</div>
+            <div class="skill-tags">
+                <span class="skill-tag">{{ pool_skill.skill_type }}</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty">该武将暂无独立技能池</p>
+    {% endif %}
+
+    <h3 style="color:#41b883;margin:30px 0 15px;padding-bottom:10px;border-bottom:2px solid #41b883;">
+        标记池 ({{ marker_pool|length }}个)
+    </h3>
+    {% if marker_pool %}
+    <div class="markers-grid">
+        {% for marker in marker_pool %}
+        <div class="marker-item">
+            <div class="marker-name">{{ marker.name }}</div>
+            <div class="marker-count">{{ marker.count }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty">该武将暂无独立标记池</p>
+    {% endif %}
+
+    <h3 style="color:#41b883;margin:30px 0 15px;padding-bottom:10px;border-bottom:2px solid #41b883;">
+        评价信息
+    </h3>
+    <form method="post" action="{{ url_for('routes.save_hero_detail') }}" style="max-width:600px;">
+        <input type="hidden" name="hero_name" value="{{ hero.name }}">
+        <input type="hidden" name="hero_id" value="{{ hero.id }}">
+        
+        <div class="form-group">
+            <label>头像URL</label>
+            <input type="text" name="avatar_url" value="{{ hero_detail.avatar_url if hero_detail else '' }}" placeholder="输入头像图片URL">
+        </div>
+        
+        <div class="form-group">
+            <label>评分 (1-10)</label>
+            <input type="number" name="rating" value="{{ hero_detail.rating if hero_detail else 0 }}" min="0" max="10">
+        </div>
+        
+        <div class="form-group">
+            <label>评价</label>
+            <textarea name="review" placeholder="输入对该武将的评价...">{{ hero_detail.review if hero_detail else '' }}</textarea>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">保存评价</button>
+    </form>
+
+    {% if hero_detail %}
+    <div style="margin-top:20px;padding:15px;background:rgba(255,255,255,0.05);border-radius:8px;">
+        <div style="display:flex;gap:15px;align-items:center;margin-bottom:10px;">
+            <span style="color:#888;">当前评分:</span>
+            <span style="font-size:1.5rem;color:#f39c12;">{{ hero_detail.rating }}</span>
+        </div>
+        {% if hero_detail.review %}
+        <div>
+            <span style="color:#888;">评价:</span>
+            <p style="color:#e8e8e8;margin-top:5px;">{{ hero_detail.review }}</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div style="margin-top:30px;">
+        <a href="{{ url_for('routes.heroes') }}" class="btn btn-secondary">返回武将库</a>
+        <a href="{{ url_for('routes.skill_pool', hero=hero.name) }}" class="btn btn-primary">管理资源池</a>
+    </div>
+</div>
+
+{% endblock %}

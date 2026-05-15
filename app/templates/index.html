@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <h2>📊 游戏状态</h2>
+    <form action="{{ url_for('routes.update_game_state') }}" method="post" class="game-state">
+        <div class="form-group">
+            <label>当前武将</label>
+            <input type="text" name="hero_name" value="{{ game_state.current_hero or '' }}" placeholder="选择或输入武将">
+        </div>
+        <div class="game-state-item">
+            <label>体力</label>
+            <div class="hp-display">{{ game_state.current_hp }}/{{ game_state.max_hp }}</div>
+        </div>
+        <div class="form-group">
+            <label>当前HP</label>
+            <input type="number" name="hp" value="{{ game_state.current_hp }}" min="0">
+        </div>
+        <div class="form-group">
+            <label>最大HP</label>
+            <input type="number" name="max_hp" value="{{ game_state.max_hp }}" min="1">
+        </div>
+        <button type="submit" class="btn btn-primary">更新</button>
+    </form>
+</div>
+
+<div class="grid">
+    <div class="card">
+    <h2>⚔️ 当前武将技能</h2>
+    {% if current_hero_skills %}
+    <div class="current-skills">
+        {% for skill in current_hero_skills %}
+        <div class="current-skill">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <span>{{ skill.name }}</span>
+                    <span class="skill-tag" style="background:#27ae60;font-size:0.7rem;margin-left:5px;">武将技</span>
+                </div>
+            </div>
+            {% if skill.description %}
+            <div class="skill-desc" style="margin-top:5px;color:#aaa;font-size:0.9rem;padding-left:5px;">
+                {{ skill.description }}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty">暂无武将技能</p>
+    {% endif %}
+</div>
+
+    <div class="card">
+        <h2>🌟 化身技能</h2>
+        {% if current_skills %}
+        <div class="current-skills">
+            {% for skill in current_skills %}
+            <div class="current-skill">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div>
+                        <span>{{ skill.skill_name }}</span>
+                        <span class="skill-tag" style="background:#9b59b6;font-size:0.7rem;margin-left:5px;">{{ skill.skill_type }}</span>
+                    </div>
+                    <form action="{{ url_for('routes.remove_current_skill', id=skill.id) }}" method="post" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm">×</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty">暂无化身技能</p>
+        {% endif %}
+
+        <div style="margin-top:20px; padding-top:20px; border-top:1px solid rgba(255,255,255,0.1);">
+            <h3 style="color:#fff;margin-bottom:10px;">手动添加技能</h3>
+            <form action="{{ url_for('routes.add_current_skill') }}" method="post" class="form-inline">
+                <input type="text" name="skill_name" placeholder="技能名" required>
+                <select name="skill_type">
+                    <option value="武将技">武将技</option>
+                    <option value="化身技">化身技</option>
+                </select>
+                <input type="text" name="acquired_from" placeholder="来源(可选)">
+                <button type="submit" class="btn btn-success">添加</button>
+            </form>
+        </div>
+
+        <div style="margin-top:15px;">
+            <form action="{{ url_for('routes.clear_current_skills') }}" method="post" style="display:inline;">
+                <button type="submit" class="btn btn-danger" onclick="return confirm('确定清空所有技能?')">清空所有</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="grid">
+    <div class="card">
+        <h2>👑 武将抽取</h2>
+        <p style="color:#888;margin-bottom:15px;">从武将池中随机抽取武将，自动获得其所有技能</p>
+        <form action="{{ url_for('routes.draw_hero') }}" method="post">
+            <div class="form-group" style="margin-bottom:15px;">
+                <label>抽取数量</label>
+                <input type="number" name="draw_count" value="1" min="1" max="5">
+            </div>
+            <div class="checkbox-group" style="margin-bottom:15px;">
+                <input type="checkbox" name="no_repeat" id="no_repeat_hero">
+                <label for="no_repeat_hero">禁止重复（武将不重复抽取）</label>
+            </div>
+            <button type="submit" class="btn btn-primary" style="background:#9b59b6;">👑 抽取武将</button>
+        </form>
+        {% if last_drawn_hero %}
+        <div style="margin-top:15px;padding:15px;background:rgba(155,89,182,0.2);border-radius:8px;">
+            <div style="color:#9b59b6;font-weight:bold;margin-bottom:5px;">刚抽到的武将：</div>
+            <div class="hero-name" style="font-size:1.5rem;">{{ last_drawn_hero.name }}</div>
+            <div class="hero-camp camp-{{ last_drawn_hero.camp }}" style="margin-top:5px;">{{ last_drawn_hero.camp }}势力 · HP:{{ last_drawn_hero.hp }}</div>
+            <div style="margin-top:10px;">
+                <span style="color:#aaa;font-size:0.9rem;">自带技能：</span>
+                {% for skill in last_drawn_hero.skills %}
+                <span class="skill-tag" style="background:#27ae60;">{{ skill.name }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>🎲 技能抽取</h2>
+        <p style="color:#888;margin-bottom:15px;">从当前武将技能池中抽取化身技能</p>
+        <form action="{{ url_for('routes.draw_skills') }}" method="post">
+            <input type="hidden" name="hero_name" value="{{ game_state.current_hero or '' }}">
+            <div class="form-group" style="margin-bottom:15px;">
+                <label>抽取数量</label>
+                <input type="number" name="draw_count" value="3" min="1" max="10">
+            </div>
+            <div class="form-group" style="margin-bottom:15px;">
+                <label>保留数量</label>
+                <input type="number" name="keep_count" value="1" min="1" max="5">
+            </div>
+            <div class="checkbox-group" style="margin-bottom:15px;">
+                <input type="checkbox" name="no_repeat" id="no_repeat">
+                <label for="no_repeat">禁止重复（排除已有技能）</label>
+            </div>
+            <button type="submit" class="btn btn-primary">🎲 抽取技能</button>
+        </form>
+        {% if not game_state.current_hero %}
+        <p style="color:#e74c3c;font-size:0.85rem;margin-top:10px;">请先从武将库选择武将</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>📌 标记状态</h2>
+        <p style="color:#888;margin-bottom:15px;font-size:0.9rem;">选择要显示的标记</p>
+        <form action="{{ url_for('routes.select_markers') }}" method="post">
+            <div class="markers-grid" style="max-height:200px;overflow-y:auto;">
+                {% for marker in all_markers %}
+                <div class="marker-item" style="padding:8px;">
+                    <input type="checkbox" name="selected_markers" value="{{ marker.name }}" 
+                           id="marker_{{ marker.name }}"
+                           {% if marker.name in selected_marker_names %}checked{% endif %}>
+                    <label for="marker_{{ marker.name }}" style="cursor:pointer;">{{ marker.name }}</label>
+                </div>
+                {% endfor %}
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top:10px;">更新显示</button>
+        </form>
+        
+        {% if selected_markers %}
+        <div style="margin-top:20px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.1);">
+            <h3 style="color:#fff;margin-bottom:10px;font-size:1rem;">已选标记</h3>
+            {% for marker in selected_markers %}
+            <div class="marker-item">
+                <div class="marker-name">{{ marker.name }}</div>
+                <div class="marker-count">{{ marker.count }}</div>
+                <div class="marker-controls">
+                    <form action="{{ url_for('routes.markers') }}" method="post" style="display:inline;">
+                        <input type="hidden" name="action" value="remove">
+                        <input type="hidden" name="marker_name" value="{{ marker.name }}">
+                        <button type="submit" class="btn btn-secondary btn-sm">-</button>
+                    </form>
+                    <form action="{{ url_for('routes.markers') }}" method="post" style="display:inline;">
+                        <input type="hidden" name="action" value="add">
+                        <input type="hidden" name="marker_name" value="{{ marker.name }}">
+                        <button type="submit" class="btn btn-primary btn-sm">+</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        <div style="margin-top:20px;">
+            <a href="{{ url_for('routes.markers') }}" class="btn btn-secondary">管理标记库</a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>⚔️ 已装备</h2>
+    {% if active_equipment %}
+    <div class="grid">
+        {% for equip in active_equipment %}
+        <div class="item equipment-active">
+            <div class="item-name">{{ equip.name }}</div>
+            <div class="item-desc">{{ equip.description }}</div>
+            <div class="item-meta">
+                <span class="tag tag-normal">{{ equip.equip_type }}</span>
+            </div>
+            <div style="margin-top:10px;">
+                <form action="{{ url_for('routes.toggle_equipment', id=equip.id) }}" method="post" style="display:inline;">
+                    <button type="submit" class="btn btn-danger btn-sm">卸下</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty">暂无装备</p>
+    {% endif %}
+    <div style="margin-top:20px;">
+        <a href="{{ url_for('routes.equipment') }}" class="btn btn-secondary">查看装备库</a>
+    </div>
+</div>
+
+{% endblock %}

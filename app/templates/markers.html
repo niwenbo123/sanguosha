@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+    <h2>📌 标记管理</h2>
+    <p style="color:#888;margin-bottom:20px;">管理系统中的各种标记数量</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;margin-bottom:30px;">
+        {% for marker in markers %}
+        <div class="item" style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <div style="font-size:1.2rem;color:#fff;">{{ marker.name }}</div>
+                <div style="color:#e94560;font-size:1.5rem;margin:5px 0;">{{ marker.count }}</div>
+            </div>
+            <div style="display:flex;gap:5px;">
+                <form method="post" style="display:inline;">
+                    <input type="hidden" name="action" value="remove">
+                    <input type="hidden" name="marker_name" value="{{ marker.name }}">
+                    <button type="submit" class="btn btn-secondary">-1</button>
+                </form>
+                <form method="post" style="display:inline;">
+                    <input type="hidden" name="action" value="add">
+                    <input type="hidden" name="marker_name" value="{{ marker.name }}">
+                    <button type="submit" class="btn btn-primary">+1</button>
+                </form>
+                <form method="post" style="display:inline;">
+                    <input type="hidden" name="action" value="set">
+                    <input type="hidden" name="marker_name" value="{{ marker.name }}">
+                    <input type="number" name="count" value="0" min="0" style="width:60px;padding:5px;">
+                    <button type="submit" class="btn btn-success">设置</button>
+                </form>
+                <form method="post" style="display:inline;">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="marker_name" value="{{ marker.name }}">
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('确定删除?')">删除</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="card" style="background:rgba(255,255,255,0.05);margin-top:20px;">
+        <h3 style="color:#fff;margin-bottom:15px;">添加新标记</h3>
+        <form method="post" class="form-inline">
+            <input type="hidden" name="action" value="add">
+            <input type="text" name="marker_name" placeholder="标记名称" required>
+            <input type="number" name="count" value="1" min="1" style="width:80px;">
+            <button type="submit" class="btn btn-success">添加</button>
+        </form>
+    </div>
+
+    <div style="margin-top:20px;">
+        <a href="{{ url_for('routes.index') }}" class="btn btn-secondary">返回状态面板</a>
+    </div>
+</div>
+
+{% endblock %}
